@@ -22,6 +22,12 @@ message KnowledgeTopic {
 
   // Optional JSON payload example included in the generated file.
   string example = 4;
+
+  // Behavioral notes, usage rules, and wiring guidance for AI agents.
+  // Rendered as a dedicated "Usage Notes" section in the generated file.
+  // Use this for rules that aren't derivable from the schema alone
+  // (e.g. "RADIO/CHECKBOX require options array", "composite steps wire via payload").
+  string usage_notes = 5;
 }
 
 // EnumValueContext adds AI-facing metadata to individual enum values.

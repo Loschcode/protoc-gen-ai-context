@@ -16,10 +16,11 @@ const (
 
 // KnowledgeTopic mirrors the proto KnowledgeTopic message.
 type KnowledgeTopic struct {
-	Topic   string
-	Title   string
-	Summary string
-	Example string
+	Topic      string
+	Title      string
+	Summary    string
+	Example    string
+	UsageNotes string
 }
 
 // EnumValueContext mirrors the proto EnumValueContext message.
@@ -158,6 +159,8 @@ func parseKnowledgeTopic(raw []byte) KnowledgeTopic {
 				out.Summary = string(b)
 			case 4:
 				out.Example = string(b)
+			case 5:
+				out.UsageNotes = string(b)
 			}
 			raw = raw[m:]
 		} else {

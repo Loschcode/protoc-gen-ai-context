@@ -35,7 +35,12 @@ type KnowledgeTopic struct {
 	// Should contain keywords users might say so the AI discovers this topic.
 	Summary string `protobuf:"bytes,3,opt,name=summary,proto3" json:"summary,omitempty"`
 	// Optional JSON payload example included in the generated file.
-	Example       string `protobuf:"bytes,4,opt,name=example,proto3" json:"example,omitempty"`
+	Example string `protobuf:"bytes,4,opt,name=example,proto3" json:"example,omitempty"`
+	// Behavioral notes, usage rules, and wiring guidance for AI agents.
+	// Rendered as a dedicated "Usage Notes" section in the generated file.
+	// Use this for rules that aren't derivable from the schema alone
+	// (e.g. "RADIO/CHECKBOX require options array", "composite steps wire via payload").
+	UsageNotes    string `protobuf:"bytes,5,opt,name=usage_notes,json=usageNotes,proto3" json:"usage_notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -94,6 +99,13 @@ func (x *KnowledgeTopic) GetSummary() string {
 func (x *KnowledgeTopic) GetExample() string {
 	if x != nil {
 		return x.Example
+	}
+	return ""
+}
+
+func (x *KnowledgeTopic) GetUsageNotes() string {
+	if x != nil {
+		return x.UsageNotes
 	}
 	return ""
 }
@@ -282,12 +294,14 @@ var File_ai_context_v1_annotations_proto protoreflect.FileDescriptor
 
 const file_ai_context_v1_annotations_proto_rawDesc = "" +
 	"\n" +
-	"\x1fai/context/v1/annotations.proto\x12\rai.context.v1\x1a google/protobuf/descriptor.proto\"p\n" +
+	"\x1fai/context/v1/annotations.proto\x12\rai.context.v1\x1a google/protobuf/descriptor.proto\"\x91\x01\n" +
 	"\x0eKnowledgeTopic\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
 	"\asummary\x18\x03 \x01(\tR\asummary\x12\x18\n" +
-	"\aexample\x18\x04 \x01(\tR\aexample\"n\n" +
+	"\aexample\x18\x04 \x01(\tR\aexample\x12\x1f\n" +
+	"\vusage_notes\x18\x05 \x01(\tR\n" +
+	"usageNotes\"n\n" +
 	"\x10EnumValueContext\x12\x1d\n" +
 	"\n" +
 	"human_name\x18\x01 \x01(\tR\thumanName\x12%\n" +

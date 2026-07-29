@@ -20,6 +20,7 @@ type TopicFile struct {
 	summaries     []string
 	humanNames    []string
 	commonQueries []string
+	usageNotes    []string
 }
 
 // Section is one block in the generated markdown (enum, message, etc.)
@@ -73,6 +74,9 @@ func (c *Collector) collectEnum(enum protoreflect.EnumDescriptor) {
 		tf := c.getOrCreate(kt.Topic, kt.Title)
 		if kt.Summary != "" {
 			tf.summaries = append(tf.summaries, kt.Summary)
+		}
+		if kt.UsageNotes != "" {
+			tf.usageNotes = append(tf.usageNotes, kt.UsageNotes)
 		}
 	}
 
@@ -135,6 +139,9 @@ func (c *Collector) collectMessage(msg protoreflect.MessageDescriptor) {
 		tf := c.getOrCreate(kt.Topic, kt.Title)
 		if kt.Summary != "" {
 			tf.summaries = append(tf.summaries, kt.Summary)
+		}
+		if kt.UsageNotes != "" {
+			tf.usageNotes = append(tf.usageNotes, kt.UsageNotes)
 		}
 
 		// Build field documentation
@@ -260,6 +267,15 @@ func (tf *TopicFile) render() string {
 	if summary != "" {
 		b.WriteString(summary)
 		b.WriteString("\n")
+	}
+
+	// Usage notes (behavioral rules not derivable from schema)
+	if len(tf.usageNotes) > 0 {
+		b.WriteString("\n## Usage Notes\n\n")
+		for _, note := range tf.usageNotes {
+			b.WriteString(note)
+			b.WriteString("\n\n")
+		}
 	}
 
 	// Sections
