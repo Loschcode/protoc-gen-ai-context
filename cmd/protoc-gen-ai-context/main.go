@@ -1,7 +1,6 @@
 package main
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/Loschcode/protoc-gen-ai-context/internal/generator"
@@ -30,25 +29,16 @@ func main() {
 			return nil
 		}
 
-		// Determine output directory from the first generated file
-		var outDir string
-		for _, file := range plugin.Files {
-			if file.Generate {
-				outDir = filepath.Dir(file.GeneratedFilenamePrefix)
-				break
-			}
-		}
-
+		// Output files directly in the output root (no proto package subdirectory).
 		for topic, content := range topics {
-			filename := filepath.Join(outDir, topic+".ai.md")
+			filename := topic + ".ai.md"
 			g := plugin.NewGeneratedFile(filename, "")
 			g.P(strings.TrimRight(content, "\n"))
 		}
 
 		// Generate a summary index file
 		indexContent := buildIndex(topics)
-		indexFilename := filepath.Join(outDir, "_index.ai.md")
-		g := plugin.NewGeneratedFile(indexFilename, "")
+		g := plugin.NewGeneratedFile("_index.ai.md", "")
 		g.P(strings.TrimRight(indexContent, "\n"))
 
 		return nil
