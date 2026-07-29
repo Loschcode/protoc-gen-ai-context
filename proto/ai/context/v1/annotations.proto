@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package ai.context.v1;
+
+option go_package = "github.com/Loschcode/protoc-gen-ai-context/ai/context/v1;ai_context_v1";
+
+import "google/protobuf/descriptor.proto";
+
+// KnowledgeTopic groups related capabilities into a single knowledge file.
+// Apply on enums or messages to assign them to a topic.
+// All items sharing the same topic value are aggregated into one .md file.
+message KnowledgeTopic {
+  // Topic identifier — becomes the output filename (e.g. "forms" → forms.md).
+  string topic = 1;
+
+  // Human-readable title used as the markdown heading.
+  string title = 2;
+
+  // Summary paragraph appended to the knowledge file's index entry.
+  // Should contain keywords users might say so the AI discovers this topic.
+  string summary = 3;
+
+  // Optional JSON payload example included in the generated file.
+  string example = 4;
+}
+
+// EnumValueContext adds AI-facing metadata to individual enum values.
+// The protoc plugin collects these to build the capability summary.
+message EnumValueContext {
+  // Human-readable name (e.g. "Rating" instead of "FORM_FIELD_TYPE_RATING").
+  string human_name = 1;
+
+  // Comma-separated common user queries that should match this value
+  // (e.g. "star rating, score, NPS, satisfaction").
+  string common_queries = 2;
+
+  // Override topic assignment. If empty, inherits from the parent enum's topic.
+  string topic = 3;
+}
+
+// FieldContext adds AI-facing metadata to individual message fields.
+message FieldContext {
+  // Human-readable description for this field.
+  string description = 1;
+
+  // Example value (included in generated payload documentation).
+  string example = 2;
+}
+
+// Extension field numbers — chosen to avoid collisions with other plugins.
+// Range 50000-99999 is reserved for third-party extensions.
+extend google.protobuf.EnumOptions {
+  KnowledgeTopic enum_knowledge = 52100;
+}
+
+extend google.protobuf.EnumValueOptions {
+  EnumValueContext enum_value_context = 52101;
+}
+
+extend google.protobuf.MessageOptions {
+  KnowledgeTopic message_knowledge = 52102;
+}
+
+extend google.protobuf.FieldOptions {
+  FieldContext field_context = 52103;
+}
