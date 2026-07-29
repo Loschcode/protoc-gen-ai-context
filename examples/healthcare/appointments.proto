@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package examples.healthcare.v1;
+
+import "ai/context/v1/annotations.proto";
+
+// AppointmentType classifies the kind of medical visit.
+// The common_queries field is especially important here because patients
+// use informal language ("I need a checkup", "follow-up with my doctor")
+// that must be mapped to the correct enum value by the AI.
+enum AppointmentType {
+  option (ai.context.v1.enum_knowledge) = {
+    topic: "appointments"
+    title: "Appointments"
+    summary: "Healthcare appointment scheduling, visit types, and medical specialties."
+    usage_notes: "INITIAL_CONSULTATION requires a referral document to be uploaded before the appointment can be confirmed. FOLLOW_UP appointments must reference a previous appointment ID. EMERGENCY slots bypass normal scheduling rules and are always same-day. TELEHEALTH appointments automatically generate a video link upon confirmation. PROCEDURE appointments require pre-authorization from insurance before booking."
+  };
+
+  APPOINTMENT_TYPE_UNSPECIFIED = 0;
+
+  APPOINTMENT_TYPE_INITIAL_CONSULTATION = 1 [(ai.context.v1.enum_value_context) = {
+    human_name: "Initial Consultation"
+    common_queries: "first visit, new patient, initial assessment, consultation"
+  }];
+
+  APPOINTMENT_TYPE_FOLLOW_UP = 2 [(ai.context.v1.enum_value_context) = {
+    human_name: "Follow-up"
+    common_queries: "follow-up, check-in, revisit, return visit, post-treatment"
+  }];
+
+  APPOINTMENT_TYPE_ANNUAL_CHECKUP = 3 [(ai.context.v1.enum_value_context) = {
+    human_name: "Annual Checkup"
+    common_queries: "checkup, physical, annual exam, wellness visit, routine exam"
+  }];
+
+  APPOINTMENT_TYPE_EMERGENCY = 4 [(ai.context.v1.enum_value_context) = {
+    human_name: "Emergency"
+    common_queries: "urgent, emergency, same-day, walk-in, immediate care"
+  }];
+
+  APPOINTMENT_TYPE_TELEHEALTH = 5 [(ai.context.v1.enum_value_context) = {
+    human_name: "Telehealth"
+    common_queries: "video call, virtual visit, online appointment, remote consultation, telemedicine"
+  }];
+
+  APPOINTMENT_TYPE_PROCEDURE = 6 [(ai.context.v1.enum_value_context) = {
+    human_name: "Procedure"
+    common_queries: "surgery, operation, medical procedure, treatment, biopsy, lab work"
+  }];
+}
+
+// SpecialtyType identifies the medical specialty of the provider.
+// common_queries map informal patient language to the correct specialty.
+enum SpecialtyType {
+  option (ai.context.v1.enum_knowledge) = {
+    topic: "appointments"
+    title: "Appointments"
+    summary: "Medical specialties available for appointment scheduling."
+    usage_notes: "When a patient describes symptoms rather than naming a specialty, the AI should map symptoms to the most likely specialty: chest pain -> CARDIOLOGY, skin rash -> DERMATOLOGY, back pain -> ORTHOPEDICS, feeling anxious -> PSYCHIATRY. If uncertain, default to GENERAL_PRACTICE and note the symptoms so the GP can refer."
+  };
+
+  SPECIALTY_TYPE_UNSPECIFIED = 0;
+
+  SPECIALTY_TYPE_GENERAL_PRACTICE = 1 [(ai.context.v1.enum_value_context) = {
+    human_name: "General Practice"
+    common_queries: "GP, family doctor, primary care, general physician, regular doctor"
+  }];
+
+  SPECIALTY_TYPE_CARDIOLOGY = 2 [(ai.context.v1.enum_value_context) = {
+    human_name: "Cardiology"
+    common_queries: "heart doctor, cardiologist, chest pain, heart problems, blood pressure"
+  }];
+
+  SPECIALTY_TYPE_DERMATOLOGY = 3 [(ai.context.v1.enum_value_context) = {
+    human_name: "Dermatology"
+    common_queries: "skin doctor, dermatologist, rash, acne, moles, skin problems"
+  }];
+
+  SPECIALTY_TYPE_ORTHOPEDICS = 4 [(ai.context.v1.enum_value_context) = {
+    human_name: "Orthopedics"
+    common_queries: "bone doctor, orthopedist, joint pain, back pain, fracture, sports injury"
+  }];
+
+  SPECIALTY_TYPE_PEDIATRICS = 5 [(ai.context.v1.enum_value_context) = {
+    human_name: "Pediatrics"
+    common_queries: "kids doctor, pediatrician, child health, baby doctor, children"
+  }];
+
+  SPECIALTY_TYPE_PSYCHIATRY = 6 [(ai.context.v1.enum_value_context) = {
+    human_name: "Psychiatry"
+    common_queries: "mental health, psychiatrist, anxiety, depression, therapy, counseling"
+  }];
+
+  SPECIALTY_TYPE_OPHTHALMOLOGY = 7 [(ai.context.v1.enum_value_context) = {
+    human_name: "Ophthalmology"
+    common_queries: "eye doctor, ophthalmologist, vision problems, eye exam, glasses"
+  }];
+}
+
+// AppointmentPayload carries all data needed to book or update an appointment.
+// Combines enum annotations with field_context to give AI agents a complete
+// picture of what each field means and how to populate it.
+message AppointmentPayload {
+  option (ai.context.v1.message_knowledge) = {
+    topic: "appointments"
+    summary: "Payload for booking or updating a healthcare appointment."
+    example: '{"patient_id": "PAT-2024-00842", "provider_id": "DR-JOHNSON-103", "appointment_type": "FOLLOW_UP", "specialty": "CARDIOLOGY", "preferred_date": "2024-04-15", "preferred_time_slot": "10:00-10:30", "reason_for_visit": "Follow-up after echocardiogram results", "previous_appointment_id": "APT-2024-03201", "insurance_provider": "BlueCross", "insurance_policy_number": "BCX-9981234", "notes": "Patient prefers morning appointments"}'
+    usage_notes: "preferred_date must be at least 24 hours in the future, except for EMERGENCY appointments. preferred_time_slot uses 30-minute windows in HH:MM-HH:MM format (24h). When the patient says 'as soon as possible', find the earliest available slot for the requested specialty. previous_appointment_id is required for FOLLOW_UP type — look up the patient's most recent appointment in that specialty if they don't provide one. Insurance fields are required for PROCEDURE type to trigger pre-authorization."
+  };
+
+  // Unique patient identifier.
+  string patient_id = 1 [(ai.context.v1.field_context) = {
+    description: "Unique patient identifier (format: PAT-YYYY-NNNNN)"
+    example: "PAT-2024-00842"
+  }];
+
+  // The healthcare provider (doctor) for this appointment.
+  string provider_id = 2 [(ai.context.v1.field_context) = {
+    description: "Provider identifier (format: DR-LASTNAME-NNN)"
+    example: "DR-JOHNSON-103"
+  }];
+
+  // What kind of visit this is.
+  AppointmentType appointment_type = 3;
+
+  // Which medical specialty is needed.
+  SpecialtyType specialty = 4;
+
+  // Requested date for the appointment (ISO 8601 date).
+  string preferred_date = 5 [(ai.context.v1.field_context) = {
+    description: "Preferred date in YYYY-MM-DD format, must be >= 24h from now"
+    example: "2024-04-15"
+  }];
+
+  // Requested time window (30-minute slots).
+  string preferred_time_slot = 6 [(ai.context.v1.field_context) = {
+    description: "30-minute slot in HH:MM-HH:MM 24h format"
+    example: "10:00-10:30"
+  }];
+
+  // Why the patient needs this appointment.
+  string reason_for_visit = 7 [(ai.context.v1.field_context) = {
+    description: "Patient-provided reason, used for triage and provider prep"
+    example: "Follow-up after echocardiogram results"
+  }];
+
+  // Reference to a prior appointment (required for follow-ups).
+  optional string previous_appointment_id = 8 [(ai.context.v1.field_context) = {
+    description: "Required for FOLLOW_UP type; references a prior appointment"
+    example: "APT-2024-03201"
+  }];
+
+  // Insurance provider name.
+  optional string insurance_provider = 9 [(ai.context.v1.field_context) = {
+    description: "Insurance company name; required for PROCEDURE type"
+    example: "BlueCross"
+  }];
+
+  // Insurance policy number for pre-authorization.
+  optional string insurance_policy_number = 10 [(ai.context.v1.field_context) = {
+    description: "Policy number for pre-authorization; required for PROCEDURE type"
+    example: "BCX-9981234"
+  }];
+
+  // Free-text notes from patient or scheduling staff.
+  optional string notes = 11 [(ai.context.v1.field_context) = {
+    description: "Optional scheduling notes from patient or staff"
+    example: "Patient prefers morning appointments"
+  }];
+}

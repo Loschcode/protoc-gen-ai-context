@@ -1,0 +1,205 @@
+syntax = "proto3";
+
+package examples.ecommerce.v1;
+
+import "ai/context/v1/annotations.proto";
+
+// ProductCategory classifies items in the catalog.
+// The enum_knowledge annotation groups this into the "products" topic,
+// while each value gets its own human_name and common_queries so the AI
+// can match natural-language requests ("I want to buy headphones") to
+// the correct enum value (PRODUCT_CATEGORY_ELECTRONICS).
+enum ProductCategory {
+  option (ai.context.v1.enum_knowledge) = {
+    topic: "products"
+    title: "Products"
+    summary: "Product catalog with categories, pricing, and inventory."
+  };
+
+  PRODUCT_CATEGORY_UNSPECIFIED = 0;
+
+  PRODUCT_CATEGORY_ELECTRONICS = 1 [(ai.context.v1.enum_value_context) = {
+    human_name: "Electronics"
+    common_queries: "gadgets, devices, tech, phones, laptops, headphones"
+  }];
+
+  PRODUCT_CATEGORY_CLOTHING = 2 [(ai.context.v1.enum_value_context) = {
+    human_name: "Clothing"
+    common_queries: "apparel, fashion, shirts, pants, dresses, shoes"
+  }];
+
+  PRODUCT_CATEGORY_HOME_GARDEN = 3 [(ai.context.v1.enum_value_context) = {
+    human_name: "Home & Garden"
+    common_queries: "furniture, decor, kitchen, outdoor, plants, tools"
+  }];
+
+  PRODUCT_CATEGORY_BOOKS = 4 [(ai.context.v1.enum_value_context) = {
+    human_name: "Books"
+    common_queries: "novels, textbooks, ebooks, audiobooks, reading"
+  }];
+
+  PRODUCT_CATEGORY_FOOD_BEVERAGE = 5 [(ai.context.v1.enum_value_context) = {
+    human_name: "Food & Beverage"
+    common_queries: "groceries, snacks, drinks, organic, gourmet"
+  }];
+}
+
+// PaymentMethod lists accepted payment options.
+// This enum is assigned to the "orders" topic, demonstrating how
+// enums in the same file can be split across different knowledge topics.
+enum PaymentMethod {
+  option (ai.context.v1.enum_knowledge) = {
+    topic: "orders"
+    title: "Orders"
+    summary: "Order processing, payment methods, and fulfillment."
+  };
+
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+
+  PAYMENT_METHOD_CREDIT_CARD = 1 [(ai.context.v1.enum_value_context) = {
+    human_name: "Credit Card"
+    common_queries: "visa, mastercard, card payment, credit"
+  }];
+
+  PAYMENT_METHOD_DEBIT_CARD = 2 [(ai.context.v1.enum_value_context) = {
+    human_name: "Debit Card"
+    common_queries: "bank card, debit, checking account card"
+  }];
+
+  PAYMENT_METHOD_PAYPAL = 3 [(ai.context.v1.enum_value_context) = {
+    human_name: "PayPal"
+    common_queries: "paypal, online wallet"
+  }];
+
+  PAYMENT_METHOD_BANK_TRANSFER = 4 [(ai.context.v1.enum_value_context) = {
+    human_name: "Bank Transfer"
+    common_queries: "wire transfer, ACH, direct deposit, bank payment"
+  }];
+
+  PAYMENT_METHOD_CRYPTO = 5 [(ai.context.v1.enum_value_context) = {
+    human_name: "Cryptocurrency"
+    common_queries: "bitcoin, ethereum, crypto, digital currency"
+  }];
+}
+
+// ProductPayload carries the data needed to create or update a product listing.
+// The message_knowledge annotation assigns it to the "products" topic and
+// provides a realistic JSON example that AI agents can use as a template.
+message ProductPayload {
+  option (ai.context.v1.message_knowledge) = {
+    topic: "products"
+    summary: "Payload for creating or updating a product in the catalog."
+    example: '{"name": "Wireless Noise-Cancelling Headphones", "description": "Premium over-ear headphones with 30-hour battery life and ANC.", "category": "ELECTRONICS", "price_cents": 29999, "currency": "USD", "sku": "WH-1000XM5", "stock_quantity": 150, "tags": ["audio", "wireless", "noise-cancelling"], "weight_grams": 250}'
+    usage_notes: "price_cents is always in the smallest currency unit (cents for USD, pence for GBP). Never store prices as floats. The sku must be unique across the catalog. stock_quantity of 0 means out of stock but still visible; use is_active=false to hide a product entirely."
+  };
+
+  // The display name shown to customers.
+  string name = 1 [(ai.context.v1.field_context) = {
+    description: "Product display name"
+    example: "Wireless Noise-Cancelling Headphones"
+  }];
+
+  // Detailed product description supporting basic markdown.
+  string description = 2 [(ai.context.v1.field_context) = {
+    description: "Full product description, supports basic markdown"
+    example: "Premium over-ear headphones with 30-hour battery life and ANC."
+  }];
+
+  // Which catalog category this product belongs to.
+  ProductCategory category = 3;
+
+  // Price in the smallest currency unit (e.g. cents).
+  int64 price_cents = 4 [(ai.context.v1.field_context) = {
+    description: "Price in smallest currency unit (cents for USD)"
+    example: "29999"
+  }];
+
+  // ISO 4217 currency code.
+  string currency = 5 [(ai.context.v1.field_context) = {
+    description: "ISO 4217 currency code"
+    example: "USD"
+  }];
+
+  // Unique stock-keeping unit identifier.
+  string sku = 6 [(ai.context.v1.field_context) = {
+    description: "Unique SKU identifier for inventory tracking"
+    example: "WH-1000XM5"
+  }];
+
+  // Current available inventory count.
+  int32 stock_quantity = 7 [(ai.context.v1.field_context) = {
+    description: "Available inventory count; 0 = out of stock"
+    example: "150"
+  }];
+
+  // Freeform tags for search and filtering.
+  repeated string tags = 8 [(ai.context.v1.field_context) = {
+    description: "Freeform tags for search and filtering"
+    example: "audio, wireless"
+  }];
+
+  // Product weight for shipping calculations.
+  int32 weight_grams = 9 [(ai.context.v1.field_context) = {
+    description: "Product weight in grams for shipping calculations"
+    example: "250"
+  }];
+
+  // Whether the product is visible in the storefront.
+  bool is_active = 10 [(ai.context.v1.field_context) = {
+    description: "Controls storefront visibility; false hides the product entirely"
+    example: "true"
+  }];
+}
+
+// OrderPayload represents a customer order.
+// Assigned to the "orders" topic alongside PaymentMethod, so they
+// appear in the same generated knowledge file.
+message OrderPayload {
+  option (ai.context.v1.message_knowledge) = {
+    topic: "orders"
+    summary: "Payload for placing a customer order."
+    example: '{"customer_email": "jane@example.com", "items": [{"sku": "WH-1000XM5", "quantity": 1}], "payment_method": "CREDIT_CARD", "shipping_address": {"line1": "123 Main St", "city": "Portland", "state": "OR", "zip": "97201", "country": "US"}, "note": "Please gift-wrap"}'
+    usage_notes: "An order must contain at least one item. The payment_method must be validated before submission. Shipping address is required for physical goods. Digital-only orders may omit shipping_address. The note field is optional and visible to warehouse staff."
+  };
+
+  // Customer email for order confirmation and tracking.
+  string customer_email = 1 [(ai.context.v1.field_context) = {
+    description: "Customer email for order confirmation"
+    example: "jane@example.com"
+  }];
+
+  // Line items in the order.
+  repeated OrderItem items = 2 [(ai.context.v1.field_context) = {
+    description: "Line items; at least one required"
+  }];
+
+  // How the customer is paying.
+  PaymentMethod payment_method = 3;
+
+  // Where to ship physical goods.
+  ShippingAddress shipping_address = 4 [(ai.context.v1.field_context) = {
+    description: "Required for physical goods, optional for digital-only orders"
+  }];
+
+  // Optional note visible to warehouse staff.
+  optional string note = 5 [(ai.context.v1.field_context) = {
+    description: "Optional note for warehouse staff"
+    example: "Please gift-wrap"
+  }];
+}
+
+// OrderItem represents a single line item in an order.
+message OrderItem {
+  string sku = 1;
+  int32 quantity = 2;
+}
+
+// ShippingAddress holds the delivery address for an order.
+message ShippingAddress {
+  string line1 = 1;
+  optional string line2 = 2;
+  string city = 3;
+  string state = 4;
+  string zip = 5;
+  string country = 6;
+}

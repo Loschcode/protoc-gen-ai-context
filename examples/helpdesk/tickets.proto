@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package examples.helpdesk.v1;
+
+import "ai/context/v1/annotations.proto";
+
+// TicketPriority determines how urgently a support ticket needs attention.
+// The usage_notes carry SLA rules that AI agents must enforce when
+// creating or triaging tickets — these rules are not derivable from
+// the enum values alone.
+enum TicketPriority {
+  option (ai.context.v1.enum_knowledge) = {
+    topic: "tickets"
+    title: "Support Tickets"
+    summary: "Helpdesk ticket management, priorities, statuses, and SLA rules."
+    usage_notes: "HIGH priority tickets must be assigned to an agent within 1 hour of creation. CRITICAL tickets must be assigned within 15 minutes and trigger an immediate page to the on-call team. MEDIUM tickets should be triaged within 4 hours. LOW tickets are picked up during normal queue rotation. When an AI agent creates a ticket, it must set the priority based on these rules: data loss or security incidents are always CRITICAL, service outages are HIGH, feature requests are LOW, everything else defaults to MEDIUM."
+  };
+
+  TICKET_PRIORITY_UNSPECIFIED = 0;
+
+  TICKET_PRIORITY_LOW = 1 [(ai.context.v1.enum_value_context) = {
+    human_name: "Low"
+    common_queries: "minor issue, feature request, nice to have, cosmetic"
+  }];
+
+  TICKET_PRIORITY_MEDIUM = 2 [(ai.context.v1.enum_value_context) = {
+    human_name: "Medium"
+    common_queries: "normal priority, standard issue, needs attention"
+  }];
+
+  TICKET_PRIORITY_HIGH = 3 [(ai.context.v1.enum_value_context) = {
+    human_name: "High"
+    common_queries: "urgent, important, service down, outage, broken"
+  }];
+
+  TICKET_PRIORITY_CRITICAL = 4 [(ai.context.v1.enum_value_context) = {
+    human_name: "Critical"
+    common_queries: "emergency, data loss, security breach, production down, P0"
+  }];
+}
+
+// TicketStatus tracks where a ticket is in the support workflow.
+// The usage_notes explain valid state transitions — an AI agent must
+// not skip steps or move tickets backward without proper authorization.
+enum TicketStatus {
+  option (ai.context.v1.enum_knowledge) = {
+    topic: "tickets"
+    title: "Support Tickets"
+    summary: "Ticket lifecycle statuses and allowed transitions."
+    usage_notes: "Valid transitions: OPEN -> IN_PROGRESS -> WAITING_ON_CUSTOMER -> IN_PROGRESS (loop) -> RESOLVED -> CLOSED. A ticket cannot go from OPEN directly to RESOLVED. CLOSED is terminal — once closed, a new ticket must be created for follow-up. Only a supervisor can reopen a CLOSED ticket. WAITING_ON_CUSTOMER auto-closes after 7 days of no response."
+  };
+
+  TICKET_STATUS_UNSPECIFIED = 0;
+
+  TICKET_STATUS_OPEN = 1 [(ai.context.v1.enum_value_context) = {
+    human_name: "Open"
+    common_queries: "new ticket, unassigned, pending triage"
+  }];
+
+  TICKET_STATUS_IN_PROGRESS = 2 [(ai.context.v1.enum_value_context) = {
+    human_name: "In Progress"
+    common_queries: "being worked on, assigned, active, in flight"
+  }];
+
+  TICKET_STATUS_WAITING_ON_CUSTOMER = 3 [(ai.context.v1.enum_value_context) = {
+    human_name: "Waiting on Customer"
+    common_queries: "pending response, waiting for reply, customer action needed"
+  }];
+
+  TICKET_STATUS_RESOLVED = 4 [(ai.context.v1.enum_value_context) = {
+    human_name: "Resolved"
+    common_queries: "fixed, done, completed, solved"
+  }];
+
+  TICKET_STATUS_CLOSED = 5 [(ai.context.v1.enum_value_context) = {
+    human_name: "Closed"
+    common_queries: "archived, finished, no further action"
+  }];
+}
+
+// TicketPayload carries all data needed to create or update a support ticket.
+// The message-level usage_notes complement the enum-level notes by adding
+// field-specific rules and validation constraints.
+message TicketPayload {
+  option (ai.context.v1.message_knowledge) = {
+    topic: "tickets"
+    summary: "Payload for creating or updating a support ticket."
+    example: '{"subject": "Cannot log in after password reset", "description": "Customer reports clicking the reset link but the new password is not accepted. Error: INVALID_CREDENTIALS. Affected since 2024-03-15.", "priority": "HIGH", "status": "OPEN", "category": "authentication", "customer_email": "user@company.com", "tags": ["auth", "login", "password-reset"], "internal_note": "Check if the reset token expired — known issue in v2.3.1"}'
+    usage_notes: "subject is limited to 200 characters. description supports markdown and should include reproduction steps when possible. internal_note is only visible to agents, never to the customer. When creating a ticket on behalf of a customer, always set customer_email. The assignee_email must reference an active agent in the system. tags are used for routing and reporting — use lowercase kebab-case."
+  };
+
+  // Short summary of the issue, max 200 characters.
+  string subject = 1 [(ai.context.v1.field_context) = {
+    description: "Short ticket subject, max 200 characters"
+    example: "Cannot log in after password reset"
+  }];
+
+  // Detailed issue description with reproduction steps.
+  string description = 2 [(ai.context.v1.field_context) = {
+    description: "Full description, supports markdown, include repro steps"
+    example: "Customer reports clicking the reset link but the new password is not accepted."
+  }];
+
+  // Ticket urgency level.
+  TicketPriority priority = 3;
+
+  // Current lifecycle status.
+  TicketStatus status = 4;
+
+  // Routing category for the ticket (e.g. "billing", "authentication").
+  string category = 5 [(ai.context.v1.field_context) = {
+    description: "Routing category for agent queue assignment"
+    example: "authentication"
+  }];
+
+  // The end-user who reported the issue.
+  string customer_email = 6 [(ai.context.v1.field_context) = {
+    description: "Email of the customer who reported the issue"
+    example: "user@company.com"
+  }];
+
+  // The agent assigned to resolve this ticket.
+  optional string assignee_email = 7 [(ai.context.v1.field_context) = {
+    description: "Email of the assigned support agent; must be an active agent"
+    example: "agent@support.com"
+  }];
+
+  // Tags for routing, filtering, and reporting.
+  repeated string tags = 8 [(ai.context.v1.field_context) = {
+    description: "Lowercase kebab-case tags for routing and reporting"
+    example: "auth, login"
+  }];
+
+  // Agent-only note, never visible to the customer.
+  optional string internal_note = 9 [(ai.context.v1.field_context) = {
+    description: "Internal note visible only to agents, never shown to customer"
+    example: "Check if the reset token expired"
+  }];
+}
