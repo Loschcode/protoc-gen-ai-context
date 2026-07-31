@@ -51,6 +51,13 @@ message FieldContext {
 
   // Example value (included in generated payload documentation).
   string example = 2;
+
+  // When true, this field is excluded from the AI tool schema generated
+  // by protoc-gen-ai-tools. Use for developer-facing fields (e.g. metadata
+  // maps with dynamic keys) that end users don't interact with through
+  // the AI assistant. The field remains in the gRPC/REST API — only the
+  // AI tool definition omits it.
+  bool ai_skip = 3;
 }
 
 // Extension field numbers — chosen to avoid collisions with other plugins.
